@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - Sports Ground Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">My Profile</h4>
+                <a href="{% url 'edit_profile' %}" class="btn btn-outline-primary btn-sm">Edit Profile</a>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="bg-light rounded-circle mx-auto d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                                <span class="display-4 text-muted">{{ user.username|first|upper }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <h5>{{ user.get_full_name|default:user.username }}</h5>
+                        <p class="text-muted">@{{ user.username }}</p>
+                        
+                        <dl class="row">
+                            <dt class="col-sm-3">Email</dt>
+                            <dd class="col-sm-9">{{ user.email }}</dd>
+                            
+                            <dt class="col-sm-3">Phone</dt>
+                            <dd class="col-sm-9">{{ profile.phone_number }}</dd>
+                            
+                            <dt class="col-sm-3">Address</dt>
+                            <dd class="col-sm-9">{{ profile.address }}</dd>
+                            
+                            <dt class="col-sm-3">Joined</dt>
+                            <dd class="col-sm-9">{{ user.date_joined|date }}</dd>
+                        </dl>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'user_dashboard' %}" class="btn btn-primary">My Dashboard</a>
+                    <a href="{% url 'user_bookings' %}" class="btn btn-outline-primary">My Bookings</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

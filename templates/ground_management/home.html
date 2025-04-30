@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Sports Ground Management{% endblock %}
+
+{% block content %}
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-4">Sports Ground Management System</h1>
+        <p class="lead">Book your favorite sports grounds with ease</p>
+        {% if not user.is_authenticated %}
+        <div class="mt-4">
+            <a href="{% url 'login' %}" class="btn btn-primary btn-lg me-2">Login</a>
+            <a href="{% url 'register' %}" class="btn btn-outline-primary btn-lg">Register</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="mb-5">
+    <h2 class="mb-4">Available Sports Grounds</h2>
+    
+    {% if grounds %}
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for ground in grounds %}
+        <div class="col">
+            <div class="card h-100">
+                {% if ground.image %}
+                <img src="{{ ground.image.url }}" class="card-img-top" alt="{{ ground.name }}">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center">
+                    <span class="text-muted">No image available</span>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ ground.name }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ ground.sport_type }}</h6>
+                    <p class="card-text">
+                        <i class="bi bi-geo-alt"></i> {{ ground.location }}
+                    </p>
+                    {% if ground.rating %}
+                    <p class="card-text">
+                        <span class="badge bg-warning text-dark">Rating: {{ ground.rating }}/5</span>
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'ground_detail' ground.id %}" class="btn btn-primary">View Details</a>
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'book_ground' ground.id %}" class="btn btn-outline-success">Book Now</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <p>No grounds are available at the moment.</p>
+        {% if user.is_staff or user.is_superuser %}
+        <p>As an admin, you can <a href="{% url 'admin_ground_add' %}">add new grounds</a>.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+
+<section class="mb-5">
+    <h2 class="mb-4">Our Services</h2>
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar3 fs-1 text-primary mb-3"></i>
+                    <h5 class="card-title">Easy Booking</h5>
+                    <p class="card-text">Book your preferred sports ground with just a few clicks.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-collection fs-1 text-primary mb-3"></i>
+                    <h5 class="card-title">Multiple Sports</h5>
+                    <p class="card-text">Choose from a variety of sports including cricket, football, badminton, and more.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-credit-card fs-1 text-primary mb-3"></i>
+                    <h5 class="card-title">Secure Payments</h5>
+                    <p class="card-text">Multiple payment options with secure transaction processing.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h2 class="mb-4">How It Works</h2>
+    <div class="row">
+        <div class="col-md-3 text-center mb-4">
+            <div class="p-3 bg-light rounded-circle d-inline-block mb-3">
+                <span class="h3">1</span>
+            </div>
+            <h5>Find a Ground</h5>
+            <p>Browse through our collection of sports grounds</p>
+        </div>
+        <div class="col-md-3 text-center mb-4">
+            <div class="p-3 bg-light rounded-circle d-inline-block mb-3">
+                <span class="h3">2</span>
+            </div>
+            <h5>Select a Time Slot</h5>
+            <p>Choose from available time slots that suit you</p>
+        </div>
+        <div class="col-md-3 text-center mb-4">
+            <div class="p-3 bg-light rounded-circle d-inline-block mb-3">
+                <span class="h3">3</span>
+            </div>
+            <h5>Book & Pay</h5>
+            <p>Complete your booking with a secure payment</p>
+        </div>
+        <div class="col-md-3 text-center mb-4">
+            <div class="p-3 bg-light rounded-circle d-inline-block mb-3">
+                <span class="h3">4</span>
+            </div>
+            <h5>Play & Enjoy</h5>
+            <p>Just show up and enjoy your game!</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

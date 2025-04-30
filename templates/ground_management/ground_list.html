@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Sports Grounds - Sports Ground Management{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Sports Grounds</h1>
+
+<!-- Filter Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Filter Grounds</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-5">
+                <label for="sport_type" class="form-label">Sport Type</label>
+                <select name="sport_type" id="sport_type" class="form-select">
+                    <option value="">All Sports</option>
+                    {% for sport in sport_types %}
+                    <option value="{{ sport }}" {% if selected_sport == sport %}selected{% endif %}>{{ sport }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label for="location" class="form-label">Location</label>
+                <input type="text" name="location" id="location" class="form-control" value="{{ selected_location }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Grounds Grid -->
+{% if grounds %}
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for ground in grounds %}
+    <div class="col">
+        <div class="card h-100">
+            {% if ground.image %}
+            <img src="{{ ground.image.url }}" class="card-img-top" alt="{{ ground.name }}">
+            {% else %}
+            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                <span class="text-muted">No image available</span>
+            </div>
+            {% endif %}
+            <div class="card-body">
+                <h5 class="card-title">{{ ground.name }}</h5>
+                <h6 class="card-subtitle mb-2 text-muted">{{ ground.sport_type }}</h6>
+                <p class="card-text">
+                    <strong>Location:</strong> {{ ground.location }}
+                </p>
+                {% if ground.description %}
+                <p class="card-text">{{ ground.description|truncatewords:20 }}</p>
+                {% endif %}
+                {% if ground.rating %}
+                <p class="card-text">
+                    <span class="badge bg-warning text-dark">Rating: {{ ground.rating }}/5</span>
+                </p>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'ground_detail' ground.id %}" class="btn btn-primary">View Details</a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'book_ground' ground.id %}" class="btn btn-outline-success">Book Now</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+    <p>No grounds found with the selected filters.</p>
+    <a href="{% url 'ground_list' %}" class="btn btn-sm btn-outline-primary mt-2">Clear filters</a>
+    {% if user.is_staff or user.is_superuser %}
+    <p class="mt-3">As an admin, you can <a href="{% url 'admin_ground_add' %}">add new grounds</a>.</p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
