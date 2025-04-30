@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 
-{% block title %}Sports Grounds - Sports Ground Management{% endblock %}
+{% block title %}Browse Grounds - Sports Ground Management{% endblock %}
 
 {% block content %}
-<h1 class="mb-4">Sports Grounds</h1>
+<h1 class="mb-4">Browse Sports Grounds</h1>
 
 <!-- Filter Section -->
 <div class="card mb-4">
@@ -12,7 +12,7 @@
     </div>
     <div class="card-body">
         <form method="get" class="row g-3">
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <label for="sport_type" class="form-label">Sport Type</label>
                 <select name="sport_type" id="sport_type" class="form-select">
                     <option value="">All Sports</option>
@@ -21,50 +21,52 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <label for="location" class="form-label">Location</label>
-                <input type="text" name="location" id="location" class="form-control" value="{{ selected_location }}">
+                <select name="location" id="location" class="form-select">
+                    <option value="">All Locations</option>
+                    {% for location in locations %}
+                    <option value="{{ location }}" {% if selected_location == location %}selected{% endif %}>{{ location }}</option>
+                    {% endfor %}
+                </select>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
+            <div class="col-md-4 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Grounds Grid -->
+<!-- Grounds Display -->
 {% if grounds %}
-<div class="row row-cols-1 row-cols-md-3 g-4">
+<div class="row">
     {% for ground in grounds %}
-    <div class="col">
+    <div class="col-md-4 mb-4">
         <div class="card h-100">
             {% if ground.image %}
             <img src="{{ ground.image.url }}" class="card-img-top" alt="{{ ground.name }}">
             {% else %}
             <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                <span class="text-muted">No image available</span>
+                <i class="bi bi-image text-secondary" style="font-size: 3rem;"></i>
             </div>
             {% endif %}
             <div class="card-body">
                 <h5 class="card-title">{{ ground.name }}</h5>
-                <h6 class="card-subtitle mb-2 text-muted">{{ ground.sport_type }}</h6>
-                <p class="card-text">
-                    <strong>Location:</strong> {{ ground.location }}
-                </p>
-                {% if ground.description %}
-                <p class="card-text">{{ ground.description|truncatewords:20 }}</p>
-                {% endif %}
-                {% if ground.rating %}
-                <p class="card-text">
-                    <span class="badge bg-warning text-dark">Rating: {{ ground.rating }}/5</span>
-                </p>
-                {% endif %}
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="badge bg-secondary">{{ ground.sport_type }}</span>
+                    <span class="rating">
+                        {% if ground.rating %}
+                            <i class="bi bi-star-fill"></i> {{ ground.rating|floatformat:1 }}/5
+                        {% else %}
+                            <i class="bi bi-star"></i> No ratings yet
+                        {% endif %}
+                    </span>
+                </div>
+                <p class="text-muted mb-2"><i class="bi bi-geo-alt"></i> {{ ground.location }}</p>
+                <p class="card-text">{{ ground.description|truncatechars:100 }}</p>
             </div>
-            <div class="card-footer">
+            <div class="card-footer bg-white d-grid">
                 <a href="{% url 'ground_detail' ground.id %}" class="btn btn-primary">View Details</a>
-                {% if user.is_authenticated %}
-                <a href="{% url 'book_ground' ground.id %}" class="btn btn-outline-success">Book Now</a>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -72,11 +74,7 @@
 </div>
 {% else %}
 <div class="alert alert-info">
-    <p>No grounds found with the selected filters.</p>
-    <a href="{% url 'ground_list' %}" class="btn btn-sm btn-outline-primary mt-2">Clear filters</a>
-    {% if user.is_staff or user.is_superuser %}
-    <p class="mt-3">As an admin, you can <a href="{% url 'admin_ground_add' %}">add new grounds</a>.</p>
-    {% endif %}
+    <p class="mb-0">No grounds found with the selected filters. Please try different filters or browse all grounds.</p>
 </div>
 {% endif %}
 {% endblock %}

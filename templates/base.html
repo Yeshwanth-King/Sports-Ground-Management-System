@@ -4,36 +4,110 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Sports Ground Management System{% endblock %}</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    
     <!-- Custom CSS -->
     <style>
-        .navbar-brand {
-            font-weight: bold;
+        /* Custom color scheme */
+        :root {
+            --primary-color: #2c6e49;
+            --primary-light: #4c956c;
+            --secondary-color: #ffc9b9;
+            --accent-color: #d68c45;
+            --dark-color: #2f3e46;
+            --light-color: #f8f9fa;
         }
-        .footer {
-            margin-top: 50px;
-            padding: 20px 0;
-            background-color: #f8f9fa;
-            border-top: 1px solid #e9ecef;
+        
+        /* Override Bootstrap colors */
+        .bg-primary { background-color: var(--primary-color) !important; }
+        .bg-secondary { background-color: var(--secondary-color) !important; }
+        .btn-primary { background-color: var(--primary-color); border-color: var(--primary-color); }
+        .btn-primary:hover { background-color: var(--primary-light); border-color: var(--primary-light); }
+        .btn-outline-primary { color: var(--primary-color); border-color: var(--primary-color); }
+        .btn-outline-primary:hover { background-color: var(--primary-color); border-color: var(--primary-color); }
+        
+        /* Navigation */
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        /* Footer */
+        footer {
+            margin-top: 3rem;
+            padding: 2rem 0;
+            background-color: var(--dark-color);
+            color: white;
         }
+        
+        /* Card styling */
+        .card {
+            border-radius: 0.5rem;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
         .card-img-top {
             height: 200px;
             object-fit: cover;
         }
+        
+        /* Spacing utilities */
         .hero-section {
-            background-color: #f8f9fa;
-            padding: 50px 0;
-            margin-bottom: 30px;
+            padding: 5rem 0;
+            background-color: var(--light-color);
+        }
+        
+        /* Ground rating stars */
+        .rating {
+            color: var(--accent-color);
+        }
+        
+        /* Custom badge styles */
+        .badge.bg-available {
+            background-color: var(--primary-color) !important;
+        }
+        
+        /* Dashboard sidebar */
+        .dashboard-sidebar {
+            background-color: var(--dark-color);
+            color: white;
+            min-height: calc(100vh - 56px);
+        }
+        
+        .dashboard-sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1rem;
+            border-radius: 0.25rem;
+        }
+        
+        .dashboard-sidebar .nav-link:hover,
+        .dashboard-sidebar .nav-link.active {
+            color: white;
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .dashboard-sidebar .nav-link i {
+            margin-right: 0.5rem;
         }
     </style>
+    
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'home' %}">Sports Ground Management</a>
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <i class="bi bi-dribbble"></i> Sports Ground Management
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -43,111 +117,96 @@
                         <a class="nav-link" href="{% url 'home' %}">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'ground_list' %}">Grounds</a>
+                        <a class="nav-link" href="{% url 'ground_list' %}">Browse Grounds</a>
                     </li>
-                    {% if user.is_authenticated %}
-                        {% if user.is_staff or user.is_superuser %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
-                                Admin
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'admin_dashboard' %}">Dashboard</a></li>
-                                <li><a class="dropdown-item" href="{% url 'admin_ground_add' %}">Manage Grounds</a></li>
-                                <li><a class="dropdown-item" href="{% url 'admin_slot_list' %}">Manage Slots</a></li>
-                                <li><a class="dropdown-item" href="{% url 'admin_booking_list' %}">Manage Bookings</a></li>
-                                <li><a class="dropdown-item" href="{% url 'revenue_report' %}">Revenue Report</a></li>
-                                <li><a class="dropdown-item" href="{% url 'occupancy_report' %}">Occupancy Report</a></li>
-                            </ul>
-                        </li>
-                        {% endif %}
-                    {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            {{ user.username }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{% url 'user_dashboard' %}">Dashboard</a></li>
-                            <li><a class="dropdown-item" href="{% url 'user_bookings' %}">My Bookings</a></li>
-                            <li><a class="dropdown-item" href="{% url 'user_profile' %}">Profile</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
-                        </ul>
-                    </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle"></i> {{ user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if user.is_staff %}
+                                <li><a class="dropdown-item" href="{% url 'admin_dashboard' %}">Admin Dashboard</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% else %}
+                                <li><a class="dropdown-item" href="{% url 'user_dashboard' %}">My Dashboard</a></li>
+                                <li><a class="dropdown-item" href="{% url 'user_bookings' %}">My Bookings</a></li>
+                                <li><a class="dropdown-item" href="{% url 'user_profile' %}">My Profile</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                            </ul>
+                        </li>
                     {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'login' %}">Login</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'register' %}">Register</a>
-                    </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'register' %}">Register</a>
+                        </li>
                     {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
-
-    <!-- Messages -->
-    <div class="container">
+    
+    <!-- Main Content -->
+    <div class="container mt-4">
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                     {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             {% endfor %}
         {% endif %}
-    </div>
-
-    <!-- Main Content -->
-    <main class="container">
+        
         {% block content %}{% endblock %}
-    </main>
-
+    </div>
+    
     <!-- Footer -->
-    <footer class="footer mt-auto py-3">
+    <footer class="mt-5">
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
                     <h5>Sports Ground Management System</h5>
-                    <p>Book your favorite sports grounds with ease.</p>
+                    <p>A comprehensive platform for managing sports grounds, booking slots, and more.</p>
                 </div>
                 <div class="col-md-3">
                     <h5>Quick Links</h5>
                     <ul class="list-unstyled">
-                        <li><a href="{% url 'home' %}">Home</a></li>
-                        <li><a href="{% url 'ground_list' %}">Grounds</a></li>
+                        <li><a href="{% url 'home' %}" class="text-white">Home</a></li>
+                        <li><a href="{% url 'ground_list' %}" class="text-white">Browse Grounds</a></li>
                         {% if user.is_authenticated %}
-                        <li><a href="{% url 'user_bookings' %}">My Bookings</a></li>
+                            <li><a href="{% url 'user_bookings' %}" class="text-white">My Bookings</a></li>
                         {% else %}
-                        <li><a href="{% url 'login' %}">Login</a></li>
-                        <li><a href="{% url 'register' %}">Register</a></li>
+                            <li><a href="{% url 'login' %}" class="text-white">Login</a></li>
+                            <li><a href="{% url 'register' %}" class="text-white">Register</a></li>
                         {% endif %}
                     </ul>
                 </div>
                 <div class="col-md-3">
-                    <h5>Contact</h5>
-                    <address>
-                        <strong>Sports Management Inc.</strong><br>
-                        123 Sports Avenue<br>
-                        City, State 12345<br>
-                        <abbr title="Phone">P:</abbr> (123) 456-7890
-                    </address>
+                    <h5>Contact Us</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-envelope me-2"></i> support@sportsground.com</li>
+                        <li><i class="bi bi-phone me-2"></i> +1 (123) 456-7890</li>
+                        <li><i class="bi bi-geo-alt me-2"></i> 123 Sports Ave, City</li>
+                    </ul>
                 </div>
             </div>
-            <div class="row">
-                <div class="col-12 text-center">
-                    <p class="text-muted">&copy; {% now "Y" %} Sports Ground Management System. All rights reserved.</p>
-                </div>
+            <hr class="bg-light">
+            <div class="text-center">
+                <p class="mb-0">&copy; {% now "Y" %} Sports Ground Management. All rights reserved.</p>
+                <p class="small">Developed for DBMS Project</p>
             </div>
         </div>
     </footer>
-
-    <!-- Bootstrap JS and dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

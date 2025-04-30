@@ -1,95 +1,104 @@
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
 
 {% block title %}Book {{ ground.name }} - Sports Ground Management{% endblock %}
 
 {% block content %}
-<div class="row">
-    <!-- Ground Information -->
-    <div class="col-md-4">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Ground Details</h5>
-            </div>
-            <div class="card-body">
-                <h4>{{ ground.name }}</h4>
-                <p class="text-muted">{{ ground.sport_type }}</p>
-                
-                <dl class="row">
-                    <dt class="col-sm-4">Location</dt>
-                    <dd class="col-sm-8">{{ ground.location }}</dd>
-                    
-                    {% if ground.rating %}
-                    <dt class="col-sm-4">Rating</dt>
-                    <dd class="col-sm-8">
-                        <span class="badge bg-warning text-dark">{{ ground.rating }}/5</span>
-                    </dd>
-                    {% endif %}
-                </dl>
-                
-                <a href="{% url 'ground_detail' ground.id %}" class="btn btn-outline-secondary">View Ground Details</a>
-            </div>
-        </div>
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>Book {{ ground.name }}</h1>
     </div>
-    
+    <div class="col-md-4 text-md-end d-flex align-items-center justify-content-md-end">
+        <a href="{% url 'ground_detail' ground.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Ground Details
+        </a>
+    </div>
+</div>
+
+<div class="row">
     <!-- Booking Form -->
     <div class="col-md-8">
-        <div class="card">
+        <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0">Book a Slot</h5>
+                <h5 class="mb-0">Booking Details</h5>
             </div>
             <div class="card-body">
-                <!-- Date Selector -->
+                <!-- Date Filter -->
                 <form method="get" class="mb-4">
-                    <div class="row">
+                    <div class="row align-items-end">
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="date" class="form-label">Select Date</label>
-                                <input type="date" id="date" name="date" class="form-control" 
-                                    value="{{ selected_date|date:'Y-m-d' }}" min="{{ now|date:'Y-m-d' }}">
-                            </div>
+                            <label for="id_date" class="form-label">Select Date</label>
+                            {{ date_filter.date|as_crispy_field }}
                         </div>
-                        <div class="col-md-6 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary">Show Available Slots</button>
+                        <div class="col-md-6">
+                            <button type="submit" class="btn btn-primary w-100">Show Available Slots</button>
                         </div>
                     </div>
                 </form>
                 
-                {% if available_slots %}
-                <h5>Available Slots for {{ selected_date|date }}</h5>
-                <form method="post">
+                <h6 class="mb-3">Selected Date: {{ selected_date|date:"F d, Y" }}</h6>
+                
+                {% if form.slot.field.choices|length > 1 %}
+                <!-- Booking Form -->
+                <form method="post" novalidate>
                     {% csrf_token %}
-                    <div class="list-group mb-4">
-                        {% for slot in available_slots %}
-                        <label class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between align-items-center">
-                                <div>
-                                    <input class="form-check-input me-2" type="radio" name="slot_id" value="{{ slot.id }}" required>
-                                    {{ slot.start_time }} - {{ slot.end_time }}
-                                </div>
-                                <span class="badge bg-primary rounded-pill">${{ slot.price_per_slot }}</span>
-                            </div>
-                        </label>
-                        {% endfor %}
-                    </div>
                     
-                    <div class="alert alert-info mb-4">
-                        <h6 class="alert-heading">Booking Information</h6>
+                    {{ form|crispy }}
+                    
+                    <div class="alert alert-info mt-4">
+                        <h6 class="alert-heading">Booking Policy</h6>
                         <ul class="mb-0">
-                            <li>All bookings must be paid at the time of booking.</li>
-                            <li>You can cancel your booking up to 24 hours before the slot time.</li>
+                            <li>Payment must be completed immediately after booking.</li>
+                            <li>Bookings can be cancelled up to 24 hours before the slot time.</li>
                             <li>Please arrive 15 minutes before your slot time.</li>
                         </ul>
                     </div>
                     
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-success">Proceed to Payment</button>
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">Confirm Booking</button>
                     </div>
                 </form>
                 {% else %}
                 <div class="alert alert-warning">
-                    <p>No slots available for {{ selected_date|date }}. Please select another date.</p>
+                    <p class="mb-0">No available slots for the selected date. Please choose another date or check back later.</p>
                 </div>
                 {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ground Info -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Ground Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex mb-2">
+                    <span class="badge bg-secondary me-2">{{ ground.sport_type }}</span>
+                    <span class="rating">
+                        {% if ground.rating %}
+                            <i class="bi bi-star-fill"></i> {{ ground.rating|floatformat:1 }}/5
+                        {% else %}
+                            <i class="bi bi-star"></i> No ratings
+                        {% endif %}
+                    </span>
+                </div>
+                <p class="text-muted mb-3"><i class="bi bi-geo-alt"></i> {{ ground.location }}</p>
+                <p>{{ ground.description|truncatechars:150 }}</p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Need Help?</h5>
+            </div>
+            <div class="card-body">
+                <p>If you need assistance with your booking, please contact our support team:</p>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-telephone me-2"></i> +1 (123) 456-7890</li>
+                    <li><i class="bi bi-envelope me-2"></i> support@sportsground.com</li>
+                </ul>
             </div>
         </div>
     </div>

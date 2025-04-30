@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Slots - Sports Ground Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Manage Slots</h1>
+    <div>
+        <a href="{% url 'admin_slot_add' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Add New Slot
+        </a>
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Filter Slots</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="groundId" class="form-label">Ground</label>
+                <select name="groundId" id="groundId" class="form-select">
+                    <option value="">All Grounds</option>
+                    {% for ground in grounds %}
+                    <option value="{{ ground.id }}" {% if selected_ground_id == ground.id %}selected{% endif %}>{{ ground.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="date" class="form-label">Date</label>
+                <input type="date" id="date" name="date" class="form-control" value="{{ selected_date }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <a href="{% url 'admin_slot_list' %}" class="btn btn-outline-secondary w-100">Clear Filters</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Slots Table -->
+{% if slots %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Ground</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for slot in slots %}
+                    <tr>
+                        <td>{{ slot.id }}</td>
+                        <td>{{ slot.ground.name }}</td>
+                        <td>{{ slot.date }}</td>
+                        <td>{{ slot.start_time }} - {{ slot.end_time }}</td>
+                        <td>${{ slot.price_per_slot }}</td>
+                        <td>
+                            {% if slot.availability_status == 'Available' %}
+                            <span class="badge bg-success">Available</span>
+                            {% elif slot.availability_status == 'Booked' %}
+                            <span class="badge bg-danger">Booked</span>
+                            {% elif slot.availability_status == 'Maintenance' %}
+                            <span class="badge bg-warning text-dark">Maintenance</span>
+                            {% elif slot.availability_status == 'Closed' %}
+                            <span class="badge bg-secondary">Closed</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'admin_slot_edit' slot.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <a href="{% url 'admin_slot_delete' slot.id %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <p>No slots found with the selected filters.</p>
+</div>
+{% endif %}
+{% endblock %}

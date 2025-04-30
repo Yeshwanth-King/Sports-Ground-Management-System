@@ -3,124 +3,115 @@
 {% block title %}{{ ground.name }} - Sports Ground Management{% endblock %}
 
 {% block content %}
-<div class="row">
-    <!-- Ground Image -->
-    <div class="col-md-4 mb-4">
-        {% if ground.image %}
-        <img src="{{ ground.image.url }}" class="img-fluid rounded" alt="{{ ground.name }}">
-        {% else %}
-        <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 300px;">
-            <span class="text-muted">No image available</span>
-        </div>
-        {% endif %}
-    </div>
-    
-    <!-- Ground Details -->
+<div class="row mb-4">
     <div class="col-md-8">
         <h1>{{ ground.name }}</h1>
-        <h5 class="text-muted">{{ ground.sport_type }}</h5>
-        
-        <div class="mb-3">
-            <strong>Location:</strong> {{ ground.location }}
+        <div class="d-flex mb-3">
+            <span class="badge bg-secondary me-2">{{ ground.sport_type }}</span>
+            <span class="rating me-3">
+                {% if ground.rating %}
+                    <i class="bi bi-star-fill"></i> {{ ground.rating|floatformat:1 }}/5
+                {% else %}
+                    <i class="bi bi-star"></i> No ratings yet
+                {% endif %}
+            </span>
+            <span class="text-muted"><i class="bi bi-geo-alt"></i> {{ ground.location }}</span>
         </div>
-        
-        {% if ground.rating %}
-        <div class="mb-3">
-            <strong>Rating:</strong> 
-            <span class="badge bg-warning text-dark">{{ ground.rating }}/5</span>
-        </div>
-        {% endif %}
-        
-        {% if ground.description %}
-        <div class="mb-3">
-            <strong>Description:</strong>
-            <p>{{ ground.description }}</p>
-        </div>
-        {% endif %}
-        
-        {% if user.is_authenticated %}
-        <a href="{% url 'book_ground' ground.id %}" class="btn btn-success">Book Now</a>
-        {% else %}
-        <a href="{% url 'login' %}" class="btn btn-outline-primary">Login to Book</a>
-        {% endif %}
-        
-        <a href="{% url 'ground_list' %}" class="btn btn-outline-secondary">Back to Grounds</a>
-        
-        {% if user.is_staff or user.is_superuser %}
-        <a href="{% url 'admin_ground_edit' ground.id %}" class="btn btn-outline-warning">Edit Ground</a>
-        {% endif %}
+    </div>
+    <div class="col-md-4 text-md-end d-flex align-items-center justify-content-md-end">
+        <a href="{% url 'ground_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Grounds
+        </a>
     </div>
 </div>
 
-<!-- Available Slots Section -->
-<div class="mt-5">
-    <h2>Available Slots</h2>
-    
-    <!-- Date Selector -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Select Date</h5>
+<div class="row">
+    <!-- Ground Image and Description -->
+    <div class="col-md-6 mb-4">
+        {% if ground.image %}
+        <img src="{{ ground.image.url }}" class="img-fluid rounded mb-3" alt="{{ ground.name }}">
+        {% else %}
+        <div class="bg-light rounded d-flex align-items-center justify-content-center mb-3" style="height: 300px;">
+            <i class="bi bi-image text-secondary" style="font-size: 4rem;"></i>
         </div>
-        <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-4">
-                    <label for="date" class="form-label">Date</label>
-                    <input type="date" id="date" name="date" class="form-control" 
-                        value="{{ selected_date|date:'Y-m-d' }}" min="{{ now|date:'Y-m-d' }}">
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary">Show Slots</button>
-                </div>
-            </form>
+        {% endif %}
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">About This Ground</h5>
+            </div>
+            <div class="card-body">
+                <p>{{ ground.description }}</p>
+            </div>
         </div>
     </div>
     
-    <!-- Slots List -->
-    {% if slots %}
-    <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Time</th>
-                    <th>Price</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for slot in slots %}
-                <tr>
-                    <td>{{ slot.start_time }} - {{ slot.end_time }}</td>
-                    <td>${{ slot.price_per_slot }}</td>
-                    <td>
-                        {% if slot.availability_status == 'Available' %}
-                        <span class="badge bg-success">Available</span>
-                        {% else %}
-                        <span class="badge bg-danger">Booked</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if slot.availability_status == 'Available' and user.is_authenticated %}
-                        <form method="post" action="{% url 'book_ground' ground.id %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="slot_id" value="{{ slot.id }}">
-                            <button type="submit" class="btn btn-sm btn-success">Book Now</button>
-                        </form>
-                        {% elif slot.availability_status == 'Available' %}
-                        <a href="{% url 'login' %}" class="btn btn-sm btn-outline-primary">Login to Book</a>
-                        {% else %}
-                        <button class="btn btn-sm btn-secondary" disabled>Not Available</button>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Available Slots -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Available Slots</h5>
+            </div>
+            <div class="card-body">
+                <!-- Date Picker -->
+                <div class="mb-4">
+                    <h6>Select Date</h6>
+                    <div class="d-flex flex-wrap">
+                        {% for date in date_list %}
+                        <a href="?date={{ date|date:'Y-m-d' }}" class="btn {% if date == selected_date %}btn-primary{% else %}btn-outline-secondary{% endif %} me-2 mb-2">
+                            {{ date|date:"D, M d" }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Slots for Selected Date -->
+                <h6>Available Time Slots for {{ selected_date|date:"F d, Y" }}</h6>
+                
+                {% if available_slots %}
+                <div class="list-group mt-3">
+                    {% for slot in available_slots %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ slot.start_time }} - {{ slot.end_time }}</strong>
+                        </div>
+                        <div>
+                            <span class="me-3">${{ slot.price_per_slot }}</span>
+                            {% if user.is_authenticated %}
+                            <a href="{% url 'book_ground' ground.id %}?date={{ selected_date|date:'Y-m-d' }}" class="btn btn-sm btn-primary">Book Now</a>
+                            {% else %}
+                            <a href="{% url 'login' %}?next={% url 'ground_detail' ground.id %}?date={{ selected_date|date:'Y-m-d' }}" class="btn btn-sm btn-primary">Login to Book</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info mt-3">
+                    <p class="mb-0">No available slots for this date. Please select another date or check back later.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Additional Information Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Booking Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Online booking available 24/7</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Secure payment options</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Free cancellation up to 24 hours before booking</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i> Instant booking confirmation</li>
+                </ul>
+                
+                <div class="alert alert-warning mt-3">
+                    <p class="mb-0"><strong>Note:</strong> Please arrive 15 minutes before your slot time. Bring proper sports equipment and ID for verification.</p>
+                </div>
+            </div>
+        </div>
     </div>
-    {% else %}
-    <div class="alert alert-info">
-        No slots available for this date. Please select another date or check back later.
-    </div>
-    {% endif %}
 </div>
 {% endblock %}

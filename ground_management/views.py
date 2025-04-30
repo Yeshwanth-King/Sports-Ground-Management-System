@@ -3,214 +3,209 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.db.models import Sum, Count, F, Q
+from django.db.models import Sum, Count, Q
 from django.utils import timezone
-from django.http import HttpResponse
-
-from .models import Ground, Slot, CustomUser, Booking, Payment
+from django.http import HttpResponseForbidden
+from .models import Ground, Slot, CustomUser, Booking, Payment, BOOKING_STATUSES
+from .forms import (
+    GroundForm, SlotForm, CustomUserForm, ExtendedUserCreationForm,
+    BookingForm, PaymentForm, DateFilterForm, BookingStatusUpdateForm
+)
 from datetime import datetime, timedelta
+import decimal
 
 # Helper function to check if user is admin
 def is_admin(user):
-    return user.is_staff or user.is_superuser
+    return user.is_staff
 
-# Home page view
+# Public views
 def home(request):
-    # Get all grounds for display
-    grounds = Ground.objects.all()
-    return render(request, 'ground_management/home.html', {'grounds': grounds})
+    # Get few featured grounds (highest rated or recently added)
+    featured_grounds = Ground.objects.all().order_by('-rating')[:3]
+    return render(request, 'ground_management/home.html', {
+        'featured_grounds': featured_grounds
+    })
 
-# Ground listing view
 def ground_list(request):
-    # Get filter parameters from request
+    # Get filter parameters
     sport_type = request.GET.get('sport_type', '')
     location = request.GET.get('location', '')
     
-    # Start with all grounds
+    # Filter grounds
     grounds = Ground.objects.all()
     
-    # Apply filters if provided
     if sport_type:
         grounds = grounds.filter(sport_type=sport_type)
+    
     if location:
         grounds = grounds.filter(location__icontains=location)
-        
-    # Get unique sport types and locations for filter dropdowns
+    
+    # Get all sport types and locations for filter dropdowns
     sport_types = Ground.objects.values_list('sport_type', flat=True).distinct()
     locations = Ground.objects.values_list('location', flat=True).distinct()
     
-    context = {
+    return render(request, 'ground_management/ground_list.html', {
         'grounds': grounds,
         'sport_types': sport_types,
         'locations': locations,
         'selected_sport': sport_type,
-        'selected_location': location,
-    }
-    
-    return render(request, 'ground_management/ground_list.html', context)
+        'selected_location': location
+    })
 
-# Ground detail view
 def ground_detail(request, ground_id):
-    ground = get_object_or_404(Ground, id=ground_id)
+    ground = get_object_or_404(Ground, pk=ground_id)
     
-    # Get date from request or use today
-    date_str = request.GET.get('date', timezone.now().date().isoformat())
+    # Get available dates for the next 7 days
+    today = timezone.now().date()
+    date_list = [today + timedelta(days=i) for i in range(7)]
+    
+    # Get the selected date (default to today)
+    selected_date = request.GET.get('date', today.strftime('%Y-%m-%d'))
     try:
-        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        selected_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
     except ValueError:
-        selected_date = timezone.now().date()
+        selected_date = today
     
-    # Get all slots for this ground on the selected date
-    slots = Slot.objects.filter(ground=ground, date=selected_date)
-    
-    context = {
-        'ground': ground,
-        'selected_date': selected_date,
-        'slots': slots,
-    }
-    
-    return render(request, 'ground_management/ground_detail.html', context)
-
-# User registration
-def register(request):
-    if request.method == 'POST':
-        user_form = UserCreationForm(request.POST)
-        
-        if user_form.is_valid():
-            # Save user but don't login yet
-            user = user_form.save()
-            
-            # Create CustomUser profile
-            phone_number = request.POST.get('phone_number', '')
-            address = request.POST.get('address', '')
-            CustomUser.objects.create(
-                user=user,
-                phone_number=phone_number,
-                address=address
-            )
-            
-            messages.success(request, 'Registration successful! Please log in.')
-            return redirect('login')
-    else:
-        user_form = UserCreationForm()
-    
-    return render(request, 'ground_management/register.html', {'form': user_form})
-
-# User profile view
-@login_required
-def user_profile(request):
-    try:
-        profile = CustomUser.objects.get(user=request.user)
-    except CustomUser.DoesNotExist:
-        # Create profile if it doesn't exist
-        profile = CustomUser.objects.create(
-            user=request.user,
-            phone_number='',
-            address=''
-        )
-    
-    return render(request, 'ground_management/user_profile.html', {'profile': profile})
-
-# Book a ground
-@login_required
-def book_ground(request, ground_id):
-    ground = get_object_or_404(Ground, id=ground_id)
-    
-    if request.method == 'POST':
-        slot_id = request.POST.get('slot_id')
-        if not slot_id:
-            messages.error(request, 'Please select a valid slot.')
-            return redirect('book_ground', ground_id=ground_id)
-        
-        slot = get_object_or_404(Slot, id=slot_id)
-        
-        # Check if slot is available
-        if slot.availability_status != 'Available':
-            messages.error(request, 'This slot is no longer available.')
-            return redirect('book_ground', ground_id=ground_id)
-        
-        # Create booking
-        booking = Booking.objects.create(
-            user=request.user,
-            slot=slot,
-            status='Confirmed'
-        )
-        
-        # Update slot status
-        slot.availability_status = 'Booked'
-        slot.save()
-        
-        # Redirect to payment
-        return redirect('payment', booking_id=booking.id)
-    
-    # Get available slots for this ground
-    date_str = request.GET.get('date', timezone.now().date().isoformat())
-    try:
-        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-    except ValueError:
-        selected_date = timezone.now().date()
-    
+    # Get available slots for the selected date
     available_slots = Slot.objects.filter(
         ground=ground,
         date=selected_date,
         availability_status='Available'
-    )
+    ).order_by('start_time')
     
-    context = {
+    return render(request, 'ground_management/ground_detail.html', {
         'ground': ground,
+        'date_list': date_list,
         'selected_date': selected_date,
-        'available_slots': available_slots,
-    }
-    
-    return render(request, 'ground_management/book_ground.html', context)
+        'available_slots': available_slots
+    })
 
-# Simple admin dashboard
-@user_passes_test(is_admin)
+def register(request):
+    if request.method == 'POST':
+        user_form = ExtendedUserCreationForm(request.POST)
+        profile_form = CustomUserForm(request.POST)
+        
+        if user_form.is_valid() and profile_form.is_valid():
+            # Save user
+            user = user_form.save()
+            
+            # Save profile
+            profile = profile_form.save(commit=False)
+            profile.user = user
+            profile.save()
+            
+            messages.success(request, 'Registration successful! You can now log in.')
+            return redirect('login')
+    else:
+        user_form = ExtendedUserCreationForm()
+        profile_form = CustomUserForm()
+    
+    return render(request, 'ground_management/register.html', {
+        'user_form': user_form,
+        'profile_form': profile_form
+    })
+
+# User views
+@login_required
+def user_profile(request):
+    try:
+        profile = request.user.profile
+    except CustomUser.DoesNotExist:
+        # If profile doesn't exist, create a blank one
+        profile = CustomUser(user=request.user)
+        profile.save()
+    
+    return render(request, 'ground_management/user_profile.html', {
+        'profile': profile
+    })
+
+@login_required
+def book_ground(request, ground_id):
+    ground = get_object_or_404(Ground, pk=ground_id)
+    
+    if request.method == 'POST':
+        form = BookingForm(request.POST)
+        
+        if form.is_valid():
+            booking = form.save(commit=False)
+            booking.user = request.user
+            booking.save()
+            
+            # Update slot availability
+            slot = booking.slot
+            slot.availability_status = 'Booked'
+            slot.save()
+            
+            messages.success(request, 'Booking successful! Please proceed to payment.')
+            return redirect('payment', booking_id=booking.id)
+    else:
+        # Get date filter
+        date_filter = DateFilterForm(request.GET)
+        selected_date = timezone.now().date()
+        
+        if date_filter.is_valid():
+            selected_date = date_filter.cleaned_data['date']
+        
+        # Create booking form with available slots
+        form = BookingForm(ground_id=ground_id, date=selected_date)
+    
+    return render(request, 'ground_management/book_ground.html', {
+        'form': form,
+        'ground': ground,
+        'date_filter': date_filter if 'date_filter' in locals() else DateFilterForm(),
+        'selected_date': selected_date
+    })
+
+@login_required
 def admin_dashboard(request):
+    if not is_admin(request.user):
+        return HttpResponseForbidden("You don't have permission to access this page.")
+    
     # Get counts for dashboard
-    total_grounds = Ground.objects.count()
-    total_slots = Slot.objects.count()
-    total_bookings = Booking.objects.count()
-    total_users = User.objects.count()
+    grounds_count = Ground.objects.count()
+    slots_count = Slot.objects.count()
+    bookings_count = Booking.objects.count()
+    users_count = User.objects.filter(is_staff=False).count()
     
-    # Recent bookings
-    recent_bookings = Booking.objects.order_by('-booking_date')[:5]
+    # Get recent bookings
+    recent_bookings = Booking.objects.all().order_by('-booking_date')[:5]
     
-    context = {
-        'total_grounds': total_grounds,
-        'total_slots': total_slots,
-        'total_bookings': total_bookings,
-        'total_users': total_users,
+    # Get revenue data
+    total_revenue = Payment.objects.filter(payment_status='Paid').aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    return render(request, 'ground_management/admin_dashboard.html', {
+        'grounds_count': grounds_count,
+        'slots_count': slots_count,
+        'bookings_count': bookings_count,
+        'users_count': users_count,
         'recent_bookings': recent_bookings,
-    }
-    
-    return render(request, 'ground_management/admin_dashboard.html', context)
+        'total_revenue': total_revenue
+    })
 
-# User dashboard
 @login_required
 def user_dashboard(request):
-    # Get user's bookings
-    bookings = Booking.objects.filter(user=request.user).order_by('-booking_date')
-    
-    # Upcoming bookings (where slot date is in the future)
-    upcoming_bookings = bookings.filter(
+    # Get user's upcoming bookings
+    upcoming_bookings = Booking.objects.filter(
+        user=request.user,
         slot__date__gte=timezone.now().date(),
-        status='Confirmed'
-    )
+        status__in=['Confirmed', 'Pending']
+    ).order_by('slot__date', 'slot__start_time')[:3]
     
-    context = {
-        'bookings': bookings,
+    # Get total bookings count
+    total_bookings = Booking.objects.filter(user=request.user).count()
+    
+    return render(request, 'ground_management/user_dashboard.html', {
         'upcoming_bookings': upcoming_bookings,
-    }
-    
-    return render(request, 'ground_management/user_dashboard.html', context)
+        'total_bookings': total_bookings
+    })
 
-# Placeholder for other views
-# Admin ground management views
+# Admin Ground Management
+@login_required
 @user_passes_test(is_admin)
 def admin_ground_add(request):
     if request.method == 'POST':
         form = GroundForm(request.POST, request.FILES)
+        
         if form.is_valid():
             form.save()
             messages.success(request, 'Ground added successfully!')
@@ -220,16 +215,17 @@ def admin_ground_add(request):
     
     return render(request, 'ground_management/admin_ground_form.html', {
         'form': form,
-        'title': 'Add New Ground',
-        'is_add': True
+        'title': 'Add New Ground'
     })
 
+@login_required
 @user_passes_test(is_admin)
 def admin_ground_edit(request, ground_id):
-    ground = get_object_or_404(Ground, id=ground_id)
+    ground = get_object_or_404(Ground, pk=ground_id)
     
     if request.method == 'POST':
         form = GroundForm(request.POST, request.FILES, instance=ground)
+        
         if form.is_valid():
             form.save()
             messages.success(request, 'Ground updated successfully!')
@@ -239,92 +235,79 @@ def admin_ground_edit(request, ground_id):
     
     return render(request, 'ground_management/admin_ground_form.html', {
         'form': form,
-        'ground': ground,
         'title': 'Edit Ground',
-        'is_add': False
+        'ground': ground
     })
 
+@login_required
 @user_passes_test(is_admin)
 def admin_ground_delete(request, ground_id):
-    ground = get_object_or_404(Ground, id=ground_id)
+    ground = get_object_or_404(Ground, pk=ground_id)
     
     if request.method == 'POST':
         ground.delete()
-        messages.success(request, f'Ground "{ground.name}" deleted successfully!')
+        messages.success(request, 'Ground deleted successfully!')
         return redirect('admin_dashboard')
     
     return render(request, 'ground_management/admin_confirm_delete.html', {
-        'object': ground,
         'title': 'Delete Ground',
         'object_name': ground.name,
         'cancel_url': 'admin_dashboard'
     })
 
-# Admin slot management views
+# Admin Slot Management
+@login_required
 @user_passes_test(is_admin)
 def admin_slot_list(request):
     # Get filter parameters
-    ground_id = request.GET.get('groundId')
-    date_str = request.GET.get('date')
+    ground_id = request.GET.get('groundId', '')
+    date = request.GET.get('date', '')
     
-    # Start with all slots
+    # Filter slots
     slots = Slot.objects.all().order_by('date', 'start_time')
     
-    # Apply filters if provided
     if ground_id:
         slots = slots.filter(ground_id=ground_id)
     
-    if date_str:
-        try:
-            filter_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            slots = slots.filter(date=filter_date)
-        except ValueError:
-            pass
+    if date:
+        slots = slots.filter(date=date)
     
-    # Get all grounds for the filter dropdown
+    # Get all grounds for filter dropdown
     grounds = Ground.objects.all()
     
     return render(request, 'ground_management/admin_slot_list.html', {
         'slots': slots,
         'grounds': grounds,
-        'selected_ground_id': int(ground_id) if ground_id else None,
-        'selected_date': date_str
+        'selected_ground_id': int(ground_id) if ground_id.isdigit() else None,
+        'selected_date': date
     })
 
+@login_required
 @user_passes_test(is_admin)
 def admin_slot_add(request):
     if request.method == 'POST':
         form = SlotForm(request.POST)
+        
         if form.is_valid():
             form.save()
             messages.success(request, 'Slot added successfully!')
             return redirect('admin_slot_list')
     else:
-        # Pre-fill the ground if provided in GET parameters
-        ground_id = request.GET.get('groundId')
-        initial_data = {}
-        
-        if ground_id:
-            try:
-                ground = Ground.objects.get(id=ground_id)
-                initial_data['ground'] = ground
-            except Ground.DoesNotExist:
-                pass
-        
-        form = SlotForm(initial=initial_data)
+        form = SlotForm()
     
     return render(request, 'ground_management/admin_slot_form.html', {
         'form': form,
-        'title': 'Add New Slot',
-        'is_add': True
+        'title': 'Add New Slot'
     })
 
+@login_required
 @user_passes_test(is_admin)
 def admin_slot_edit(request, slot_id):
-    slot = get_object_or_404(Slot, id=slot_id)
+    slot = get_object_or_404(Slot, pk=slot_id)
     
     if request.method == 'POST':
         form = SlotForm(request.POST, instance=slot)
+        
         if form.is_valid():
             form.save()
             messages.success(request, 'Slot updated successfully!')
@@ -334,14 +317,14 @@ def admin_slot_edit(request, slot_id):
     
     return render(request, 'ground_management/admin_slot_form.html', {
         'form': form,
-        'slot': slot,
         'title': 'Edit Slot',
-        'is_add': False
+        'slot': slot
     })
 
+@login_required
 @user_passes_test(is_admin)
 def admin_slot_delete(request, slot_id):
-    slot = get_object_or_404(Slot, id=slot_id)
+    slot = get_object_or_404(Slot, pk=slot_id)
     
     if request.method == 'POST':
         slot.delete()
@@ -349,9 +332,8 @@ def admin_slot_delete(request, slot_id):
         return redirect('admin_slot_list')
     
     return render(request, 'ground_management/admin_confirm_delete.html', {
-        'object': slot,
         'title': 'Delete Slot',
-        'object_name': f'Slot on {slot.date} ({slot.start_time} - {slot.end_time})',
+        'object_name': f"{slot.ground.name} - {slot.date} ({slot.start_time} to {slot.end_time})",
         'cancel_url': 'admin_slot_list'
     })
 
@@ -359,44 +341,42 @@ def admin_slot_delete(request, slot_id):
 @login_required
 def edit_profile(request):
     try:
-        profile = CustomUser.objects.get(user=request.user)
+        profile = request.user.profile
     except CustomUser.DoesNotExist:
-        profile = CustomUser.objects.create(user=request.user, phone_number='', address='')
+        # If profile doesn't exist, create a blank one
+        profile = CustomUser(user=request.user)
+        profile.save()
     
     if request.method == 'POST':
-        user_form = UserCreationForm(request.POST, instance=request.user)
-        profile_form = CustomUserForm(request.POST, instance=profile)
+        form = CustomUserForm(request.POST, instance=profile)
         
-        if user_form.is_valid() and profile_form.is_valid():
-            user_form.save()
-            profile_form.save()
-            messages.success(request, 'Your profile was updated successfully!')
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
             return redirect('user_profile')
     else:
-        user_form = UserCreationForm(instance=request.user)
-        profile_form = CustomUserForm(instance=profile)
+        form = CustomUserForm(instance=profile)
     
     return render(request, 'ground_management/edit_profile.html', {
-        'user_form': user_form,
-        'profile_form': profile_form
+        'form': form
     })
 
-# User booking management
+# Booking management
 @login_required
 def user_bookings(request):
-    bookings = Booking.objects.filter(user=request.user).order_by('-booking_date')
+    today = timezone.now().date()
     
-    # Group bookings by status
-    upcoming_bookings = bookings.filter(
-        slot__date__gte=timezone.now().date(),
-        status='Confirmed'
-    )
+    # Get upcoming bookings (today or future date)
+    upcoming_bookings = Booking.objects.filter(
+        user=request.user,
+        slot__date__gte=today
+    ).order_by('slot__date', 'slot__start_time')
     
-    past_bookings = bookings.filter(
-        Q(slot__date__lt=timezone.now().date()) | 
-        Q(status='Completed') | 
-        Q(status='Cancelled')
-    )
+    # Get past bookings
+    past_bookings = Booking.objects.filter(
+        user=request.user,
+        slot__date__lt=today
+    ).order_by('-slot__date')
     
     return render(request, 'ground_management/user_bookings.html', {
         'upcoming_bookings': upcoming_bookings,
@@ -405,12 +385,11 @@ def user_bookings(request):
 
 @login_required
 def cancel_booking(request, booking_id):
-    booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+    booking = get_object_or_404(Booking, pk=booking_id)
     
-    # Check if booking can be cancelled (only if it's confirmed and in the future)
-    if booking.status != 'Confirmed' or booking.slot.date < timezone.now().date():
-        messages.error(request, 'This booking cannot be cancelled.')
-        return redirect('user_bookings')
+    # Ensure user owns the booking
+    if booking.user != request.user:
+        return HttpResponseForbidden("You don't have permission to cancel this booking.")
     
     if request.method == 'POST':
         # Update booking status
@@ -429,50 +408,50 @@ def cancel_booking(request, booking_id):
         'booking': booking
     })
 
-# Admin booking management
+@login_required
 @user_passes_test(is_admin)
 def admin_booking_list(request):
     # Get filter parameters
     status = request.GET.get('status', '')
     
-    # Start with all bookings
+    # Filter bookings
     bookings = Booking.objects.all().order_by('-booking_date')
     
-    # Apply filters if provided
     if status:
         bookings = bookings.filter(status=status)
     
     return render(request, 'ground_management/admin_booking_list.html', {
         'bookings': bookings,
-        'selected_status': status,
-        'booking_statuses': [choice[0] for choice in BOOKING_STATUSES]
+        'booking_statuses': BOOKING_STATUSES,
+        'selected_status': status
     })
 
+@login_required
 @user_passes_test(is_admin)
 def admin_booking_detail(request, booking_id):
-    booking = get_object_or_404(Booking, id=booking_id)
+    booking = get_object_or_404(Booking, pk=booking_id)
+    
+    try:
+        payment = booking.payment
+    except Payment.DoesNotExist:
+        payment = None
     
     if request.method == 'POST':
         form = BookingStatusUpdateForm(request.POST, instance=booking)
+        
         if form.is_valid():
-            form.save()
+            updated_booking = form.save()
             
-            # If booking is cancelled, update slot availability
-            if booking.status == 'Cancelled':
-                slot = booking.slot
+            # Update slot availability if booking is cancelled
+            if updated_booking.status == 'Cancelled':
+                slot = updated_booking.slot
                 slot.availability_status = 'Available'
                 slot.save()
             
             messages.success(request, 'Booking status updated successfully!')
-            return redirect('admin_booking_list')
+            return redirect('admin_booking_detail', booking_id=booking.id)
     else:
         form = BookingStatusUpdateForm(instance=booking)
-    
-    # Get payment info if exists
-    try:
-        payment = Payment.objects.get(booking=booking)
-    except Payment.DoesNotExist:
-        payment = None
     
     return render(request, 'ground_management/admin_booking_detail.html', {
         'booking': booking,
@@ -480,46 +459,45 @@ def admin_booking_detail(request, booking_id):
         'form': form
     })
 
-# Payment processing
+# Payment
 @login_required
 def payment(request, booking_id):
-    booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+    booking = get_object_or_404(Booking, pk=booking_id)
     
-    # Check if payment already exists
-    try:
-        payment = Payment.objects.get(booking=booking)
-        messages.info(request, 'Payment has already been processed for this booking.')
-        return redirect('payment_success', booking_id=booking.id)
-    except Payment.DoesNotExist:
-        pass
+    # Ensure user owns the booking
+    if booking.user != request.user:
+        return HttpResponseForbidden("You don't have permission to access this page.")
     
     if request.method == 'POST':
-        form = PaymentForm(request.POST)
+        form = PaymentForm(request.POST, booking=booking)
+        
         if form.is_valid():
             payment = form.save(commit=False)
             payment.booking = booking
-            payment.amount = booking.slot.price_per_slot  # Set amount from slot price
-            payment.payment_status = 'Paid'  # Assume payment is successful
+            payment.payment_status = 'Paid'  # In a real app, this would depend on payment gateway response
             payment.save()
             
-            messages.success(request, 'Payment processed successfully!')
+            messages.success(request, 'Payment successful!')
             return redirect('payment_success', booking_id=booking.id)
     else:
-        form = PaymentForm(initial={'amount': booking.slot.price_per_slot})
+        form = PaymentForm(booking=booking)
     
     return render(request, 'ground_management/payment.html', {
-        'booking': booking,
-        'form': form
+        'form': form,
+        'booking': booking
     })
 
 @login_required
 def payment_success(request, booking_id):
-    booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+    booking = get_object_or_404(Booking, pk=booking_id)
+    
+    # Ensure user owns the booking
+    if booking.user != request.user:
+        return HttpResponseForbidden("You don't have permission to access this page.")
     
     try:
-        payment = Payment.objects.get(booking=booking)
+        payment = booking.payment
     except Payment.DoesNotExist:
-        messages.error(request, 'No payment found for this booking.')
         return redirect('payment', booking_id=booking.id)
     
     return render(request, 'ground_management/payment_success.html', {
@@ -527,44 +505,50 @@ def payment_success(request, booking_id):
         'payment': payment
     })
 
-# Admin reports
+# Reports
+@login_required
 @user_passes_test(is_admin)
 def revenue_report(request):
-    # Calculate revenue per ground
-    grounds = Ground.objects.all()
+    # Calculate total revenue
+    total_revenue = Payment.objects.filter(payment_status='Paid').aggregate(Sum('amount'))['amount__sum'] or 0
+    
+    # Get revenue by ground
     revenue_data = []
+    grounds = Ground.objects.all()
     
     for ground in grounds:
-        total_revenue = Payment.objects.filter(
+        ground_revenue = Payment.objects.filter(
             booking__slot__ground=ground,
             payment_status='Paid'
-        ).aggregate(total=Sum('amount'))
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
         
-        revenue_data.append({
-            'ground': ground,
-            'total_revenue': total_revenue['total'] or 0
-        })
+        if ground_revenue > 0:
+            revenue_data.append({
+                'ground': ground,
+                'total_revenue': ground_revenue
+            })
     
     # Sort by revenue (highest first)
-    revenue_data = sorted(revenue_data, key=lambda x: x['total_revenue'], reverse=True)
+    revenue_data.sort(key=lambda x: x['total_revenue'], reverse=True)
     
     return render(request, 'ground_management/revenue_report.html', {
-        'revenue_data': revenue_data,
-        'total_revenue': sum(item['total_revenue'] for item in revenue_data)
+        'total_revenue': total_revenue,
+        'revenue_data': revenue_data
     })
 
+@login_required
 @user_passes_test(is_admin)
 def occupancy_report(request):
-    # Calculate occupancy rate per ground
-    grounds = Ground.objects.all()
+    # Get occupancy data by ground
     occupancy_data = []
+    grounds = Ground.objects.all()
     
     for ground in grounds:
-        # Get all slots for this ground
+        # Total number of slots
         total_slots = Slot.objects.filter(ground=ground).count()
         
         if total_slots > 0:
-            # Get booked slots
+            # Number of booked slots
             booked_slots = Slot.objects.filter(
                 ground=ground,
                 availability_status='Booked'
@@ -572,18 +556,16 @@ def occupancy_report(request):
             
             # Calculate occupancy rate
             occupancy_rate = (booked_slots / total_slots) * 100
-        else:
-            occupancy_rate = 0
-        
-        occupancy_data.append({
-            'ground': ground,
-            'total_slots': total_slots,
-            'booked_slots': booked_slots if total_slots > 0 else 0,
-            'occupancy_rate': occupancy_rate
-        })
+            
+            occupancy_data.append({
+                'ground': ground,
+                'total_slots': total_slots,
+                'booked_slots': booked_slots,
+                'occupancy_rate': occupancy_rate
+            })
     
     # Sort by occupancy rate (highest first)
-    occupancy_data = sorted(occupancy_data, key=lambda x: x['occupancy_rate'], reverse=True)
+    occupancy_data.sort(key=lambda x: x['occupancy_rate'], reverse=True)
     
     return render(request, 'ground_management/occupancy_report.html', {
         'occupancy_data': occupancy_data
