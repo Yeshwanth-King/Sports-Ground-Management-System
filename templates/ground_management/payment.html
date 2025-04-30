@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Payment - Sports Ground Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Payment Details</h4>
+            </div>
+            <div class="card-body">
+                <h5>Booking Information</h5>
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered">
+                        <tr>
+                            <th width="30%">Ground</th>
+                            <td>{{ booking.slot.ground.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date</th>
+                            <td>{{ booking.slot.date }}</td>
+                        </tr>
+                        <tr>
+                            <th>Time</th>
+                            <td>{{ booking.slot.start_time }} - {{ booking.slot.end_time }}</td>
+                        </tr>
+                        <tr>
+                            <th>Amount</th>
+                            <td>${{ booking.slot.price_per_slot }}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <h5>Enter Payment Information</h5>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {{ form|crispy }}
+                    
+                    <div class="alert alert-info my-3">
+                        <p class="mb-0">This is a demo payment. No actual money will be charged.</p>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">Process Payment</button>
+                        <a href="{% url 'user_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

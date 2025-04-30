@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Successful - Sports Ground Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card text-center border-success">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">Payment Successful</h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+                </div>
+                
+                <h5 class="card-title">Thank you for your payment!</h5>
+                <p class="card-text">Your booking has been confirmed.</p>
+                
+                <div class="alert alert-success mb-4">
+                    <strong>Booking Reference:</strong> #{{ booking.id }}<br>
+                    <strong>Payment Amount:</strong> ${{ payment.amount }}<br>
+                    <strong>Payment Method:</strong> {{ payment.payment_method }}<br>
+                    <strong>Payment Date:</strong> {{ payment.payment_date|date:"F d, Y H:i" }}
+                </div>
+                
+                <h5>Booking Details</h5>
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered">
+                        <tr>
+                            <th width="30%">Ground</th>
+                            <td>{{ booking.slot.ground.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date</th>
+                            <td>{{ booking.slot.date }}</td>
+                        </tr>
+                        <tr>
+                            <th>Time</th>
+                            <td>{{ booking.slot.start_time }} - {{ booking.slot.end_time }}</td>
+                        </tr>
+                        <tr>
+                            <th>Location</th>
+                            <td>{{ booking.slot.ground.location }}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div class="alert alert-info">
+                    <h5 class="alert-heading">Important Information</h5>
+                    <ul class="mb-0 text-start">
+                        <li>Please arrive 15 minutes before your slot time.</li>
+                        <li>Bring your ID for verification.</li>
+                        <li>Booking cancellations are allowed up to 24 hours before the slot time.</li>
+                    </ul>
+                </div>
+                
+                <div class="d-grid gap-2 mt-4">
+                    <a href="{% url 'user_bookings' %}" class="btn btn-primary">View My Bookings</a>
+                    <a href="{% url 'home' %}" class="btn btn-outline-secondary">Return to Home</a>
+                </div>
+            </div>
+            <div class="card-footer text-muted">
+                A confirmation email has been sent to your registered email address.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

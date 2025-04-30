@@ -2,43 +2,46 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-# Sport type choices
+# Choices for model fields
 SPORT_TYPES = [
     ('Cricket', 'Cricket'),
     ('Football', 'Football'),
     ('Basketball', 'Basketball'),
-    ('Badminton', 'Badminton'),
     ('Tennis', 'Tennis'),
+    ('Badminton', 'Badminton'),
     ('Volleyball', 'Volleyball'),
     ('Hockey', 'Hockey'),
     ('Swimming', 'Swimming'),
+    ('Other', 'Other'),
 ]
 
-# Payment method choices
-PAYMENT_METHODS = [
-    ('Card', 'Card'),
-    ('Cash', 'Cash'),
-    ('Online', 'Online'),
-]
-
-# Payment status choices
-PAYMENT_STATUSES = [
-    ('Paid', 'Paid'),
-    ('Pending', 'Pending'),
-    ('Failed', 'Failed'),
-]
-
-# Booking status choices
-BOOKING_STATUSES = [
-    ('Confirmed', 'Confirmed'),
-    ('Cancelled', 'Cancelled'),
-    ('Completed', 'Completed'),
-]
-
-# Slot availability status choices
 AVAILABILITY_STATUSES = [
     ('Available', 'Available'),
     ('Booked', 'Booked'),
+    ('Maintenance', 'Under Maintenance'),
+    ('Closed', 'Closed'),
+]
+
+BOOKING_STATUSES = [
+    ('Pending', 'Pending'),
+    ('Confirmed', 'Confirmed'),
+    ('Completed', 'Completed'),
+    ('Cancelled', 'Cancelled'),
+]
+
+PAYMENT_METHODS = [
+    ('Credit Card', 'Credit Card'),
+    ('Debit Card', 'Debit Card'),
+    ('UPI', 'UPI'),
+    ('Net Banking', 'Net Banking'),
+    ('Cash', 'Cash'),
+]
+
+PAYMENT_STATUSES = [
+    ('Pending', 'Pending'),
+    ('Paid', 'Paid'),
+    ('Failed', 'Failed'),
+    ('Refunded', 'Refunded'),
 ]
 
 class Ground(models.Model):
@@ -55,7 +58,7 @@ class Ground(models.Model):
     image = models.ImageField(upload_to='grounds/', blank=True, null=True)
     
     def __str__(self):
-        return f"{self.name} ({self.sport_type})"
+        return self.name
     
     class Meta:
         ordering = ['name']
@@ -78,7 +81,7 @@ class Slot(models.Model):
     
     class Meta:
         ordering = ['date', 'start_time']
-        # Ensure we don't have overlapping slots for the same ground
+        # Ensure no overlapping slots for the same ground
         constraints = [
             models.UniqueConstraint(
                 fields=['ground', 'date', 'start_time'],
@@ -93,7 +96,7 @@ class CustomUser(models.Model):
     address = models.TextField()
     
     def __str__(self):
-        return f"{self.user.username} Profile"
+        return self.user.username
 
 class Booking(models.Model):
     """Model representing a booking"""
@@ -107,7 +110,7 @@ class Booking(models.Model):
     )
     
     def __str__(self):
-        return f"Booking #{self.id} - {self.user.username} - {self.slot}"
+        return f"Booking {self.id} - {self.user.username} - {self.slot}"
     
     class Meta:
         ordering = ['-booking_date']
@@ -125,7 +128,7 @@ class Payment(models.Model):
     )
     
     def __str__(self):
-        return f"Payment #{self.id} for Booking #{self.booking.id}"
+        return f"Payment for Booking {self.booking.id}"
     
     class Meta:
         ordering = ['-payment_date']
