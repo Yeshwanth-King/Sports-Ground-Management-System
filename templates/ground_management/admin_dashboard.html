@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - Sports Ground Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        border-radius: 0.5rem;
+        transition: transform 0.3s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .stat-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Admin Dashboard</h1>
+    <div>
+        <a href="{% url 'admin:index' %}" class="btn btn-outline-primary">Django Admin</a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 stat-card border-primary">
+            <div class="card-body text-center">
+                <div class="stat-icon text-primary">
+                    <i class="bi bi-geo-alt"></i>
+                </div>
+                <h2 class="display-4">{{ total_grounds }}</h2>
+                <p class="text-muted mb-0">Total Grounds</p>
+            </div>
+            <div class="card-footer bg-transparent border-0 text-center">
+                <a href="{% url 'admin_ground_add' %}" class="btn btn-sm btn-outline-primary">Manage Grounds</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 stat-card border-success">
+            <div class="card-body text-center">
+                <div class="stat-icon text-success">
+                    <i class="bi bi-calendar-event"></i>
+                </div>
+                <h2 class="display-4">{{ total_slots }}</h2>
+                <p class="text-muted mb-0">Total Slots</p>
+            </div>
+            <div class="card-footer bg-transparent border-0 text-center">
+                <a href="{% url 'admin_slot_list' %}" class="btn btn-sm btn-outline-success">Manage Slots</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 stat-card border-info">
+            <div class="card-body text-center">
+                <div class="stat-icon text-info">
+                    <i class="bi bi-bookmark-check"></i>
+                </div>
+                <h2 class="display-4">{{ total_bookings }}</h2>
+                <p class="text-muted mb-0">Total Bookings</p>
+            </div>
+            <div class="card-footer bg-transparent border-0 text-center">
+                <a href="{% url 'admin_booking_list' %}" class="btn btn-sm btn-outline-info">View Bookings</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 stat-card border-warning">
+            <div class="card-body text-center">
+                <div class="stat-icon text-warning">
+                    <i class="bi bi-people"></i>
+                </div>
+                <h2 class="display-4">{{ total_users }}</h2>
+                <p class="text-muted mb-0">Registered Users</p>
+            </div>
+            <div class="card-footer bg-transparent border-0 text-center">
+                <a href="{% url 'admin:auth_user_changelist' %}" class="btn btn-sm btn-outline-warning">View Users</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Bookings -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Bookings</h5>
+                <a href="{% url 'admin_booking_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_bookings %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>User</th>
+                                <th>Ground</th>
+                                <th>Date & Time</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in recent_bookings %}
+                            <tr>
+                                <td>{{ booking.id }}</td>
+                                <td>{{ booking.user.username }}</td>
+                                <td>{{ booking.slot.ground.name }}</td>
+                                <td>{{ booking.slot.date }} ({{ booking.slot.start_time }})</td>
+                                <td>
+                                    {% if booking.status == 'Confirmed' %}
+                                    <span class="badge bg-success">Confirmed</span>
+                                    {% elif booking.status == 'Cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                    {% elif booking.status == 'Completed' %}
+                                    <span class="badge bg-secondary">Completed</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if booking.payment %}
+                                        {% if booking.payment.payment_status == 'Paid' %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% elif booking.payment.payment_status == 'Pending' %}
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Failed</span>
+                                        {% endif %}
+                                    {% else %}
+                                    <span class="badge bg-secondary">No Payment</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p>No bookings yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions & Reports -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'admin_ground_add' %}" class="btn btn-outline-primary">Add New Ground</a>
+                    <a href="{% url 'admin_slot_add' %}" class="btn btn-outline-success">Add New Slot</a>
+                    <a href="{% url 'revenue_report' %}" class="btn btn-outline-info">View Revenue Reports</a>
+                    <a href="{% url 'occupancy_report' %}" class="btn btn-outline-warning">View Occupancy Reports</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">System Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Sports Ground Management</span>
+                        <span class="badge bg-primary">v1.0</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Current Date</span>
+                        <span>{% now "F j, Y" %}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Admin User</span>
+                        <span>{{ user.username }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- You can add chart.js or other JS libraries here for dashboard visualizations -->
+{% endblock %}

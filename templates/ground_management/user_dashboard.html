@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}My Dashboard - Sports Ground Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <!-- User Info Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">User Information</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="bg-light rounded-circle mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <span class="display-5 text-muted">{{ user.username|first|upper }}</span>
+                </div>
+                <h5>{{ user.get_full_name|default:user.username }}</h5>
+                <p class="text-muted">@{{ user.username }}</p>
+                <a href="{% url 'user_profile' %}" class="btn btn-outline-primary btn-sm">View Profile</a>
+            </div>
+        </div>
+        
+        <!-- Quick Links Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Links</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'ground_list' %}" class="list-group-item list-group-item-action">
+                        Browse Grounds
+                    </a>
+                    <a href="{% url 'user_bookings' %}" class="list-group-item list-group-item-action">
+                        My Bookings
+                    </a>
+                    <a href="{% url 'edit_profile' %}" class="list-group-item list-group-item-action">
+                        Edit Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <!-- Upcoming Bookings Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Upcoming Bookings</h5>
+                <a href="{% url 'user_bookings' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if upcoming_bookings %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ground</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in upcoming_bookings %}
+                            <tr>
+                                <td>{{ booking.slot.ground.name }}</td>
+                                <td>{{ booking.slot.date }}</td>
+                                <td>{{ booking.slot.start_time }} - {{ booking.slot.end_time }}</td>
+                                <td>
+                                    {% if booking.status == 'Confirmed' %}
+                                    <span class="badge bg-success">Confirmed</span>
+                                    {% elif booking.status == 'Cancelled' %}
+                                    <span class="badge bg-danger">Cancelled</span>
+                                    {% elif booking.status == 'Completed' %}
+                                    <span class="badge bg-secondary">Completed</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if booking.status == 'Confirmed' %}
+                                    <a href="{% url 'cancel_booking' booking.id %}" class="btn btn-sm btn-outline-danger">Cancel</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <p>You don't have any upcoming bookings.</p>
+                    <a href="{% url 'ground_list' %}" class="btn btn-sm btn-primary mt-2">Book a Ground</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Recent Activity Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                {% if bookings %}
+                <div class="list-group">
+                    {% for booking in bookings|slice:":5" %}
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Booked {{ booking.slot.ground.name }}</h6>
+                            <small class="text-muted">{{ booking.booking_date|timesince }} ago</small>
+                        </div>
+                        <p class="mb-1">{{ booking.slot.date }} ({{ booking.slot.start_time }} - {{ booking.slot.end_time }})</p>
+                        <small>Status: {{ booking.status }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p>No recent activity.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
