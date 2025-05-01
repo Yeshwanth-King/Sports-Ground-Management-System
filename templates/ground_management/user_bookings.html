@@ -40,7 +40,7 @@
                         <td>{{ booking.slot.ground.name }}</td>
                         <td>{{ booking.slot.date }}</td>
                         <td>{{ booking.slot.start_time }} - {{ booking.slot.end_time }}</td>
-                        <td>${{ booking.slot.price_per_slot }}</td>
+                        <td>₹{{ booking.slot.price_per_slot }}</td>
                         <td>
                             {% if booking.status == 'Confirmed' %}
                             <span class="badge bg-success">Confirmed</span>
@@ -88,7 +88,7 @@
                         <td>{{ booking.slot.ground.name }}</td>
                         <td>{{ booking.slot.date }}</td>
                         <td>{{ booking.slot.start_time }} - {{ booking.slot.end_time }}</td>
-                        <td>${{ booking.slot.price_per_slot }}</td>
+                        <td>₹{{ booking.slot.price_per_slot }}</td>
                         <td>
                             {% if booking.status == 'Completed' %}
                             <span class="badge bg-secondary">Completed</span>

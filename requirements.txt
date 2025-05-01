@@ -1,0 +1,27 @@
+# Core Django
+Django==5.2.0
+
+# Database
+psycopg2-binary==2.9.9  # PostgreSQL adapter
+
+# Django REST framework
+djangorestframework==3.14.0
+
+# Form handling
+django-crispy-forms==2.0
+crispy-bootstrap5==2023.10
+
+# Image handling (for ground images)
+Pillow==10.0.0  
+
+# Environment management
+python-dotenv==1.0.0
+
+# Production server
+gunicorn==21.2.0
+
+# Security
+django-cors-headers==4.3.0
+
+# Development tools
+django-debug-toolbar==4.2.0

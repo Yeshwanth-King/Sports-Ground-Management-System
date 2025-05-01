@@ -69,7 +69,7 @@
                         <td>{{ slot.ground.name }}</td>
                         <td>{{ slot.date }}</td>
                         <td>{{ slot.start_time }} - {{ slot.end_time }}</td>
-                        <td>${{ slot.price_per_slot }}</td>
+                        <td>₹{{ slot.price_per_slot }}</td>
                         <td>
                             {% if slot.availability_status == 'Available' %}
                             <span class="badge bg-success">Available</span>

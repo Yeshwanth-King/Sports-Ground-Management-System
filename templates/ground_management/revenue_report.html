@@ -17,7 +17,7 @@
                 <h5 class="mb-0">Total Revenue</h5>
             </div>
             <div class="card-body text-center">
-                <h2 class="display-4">${{ total_revenue }}</h2>
+                <h2 class="display-4">₹{{ total_revenue }}</h2>
                 <p class="text-muted mb-0">Across all grounds</p>
             </div>
         </div>
@@ -59,14 +59,14 @@
                         <td>{{ item.ground.name }}</td>
                         <td>{{ item.ground.sport_type }}</td>
                         <td>{{ item.ground.location }}</td>
-                        <td class="text-end">${{ item.total_revenue }}</td>
+                        <td class="text-end">₹{{ item.total_revenue }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
                 <tfoot>
                     <tr class="table-dark">
                         <th colspan="3">Total Revenue</th>
-                        <th class="text-end">${{ total_revenue }}</th>
+                        <th class="text-end">₹{{ total_revenue }}</th>
                     </tr>
                 </tfoot>
             </table>

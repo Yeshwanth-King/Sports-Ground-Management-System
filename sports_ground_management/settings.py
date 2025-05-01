@@ -27,8 +27,10 @@ SECRET_KEY = 'django-insecure-i73x8sn3@v=zb+5qo$n!0&!5zp4ti10*+g0gjh2y%5^f@*u&^)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'feasible-closing-shepherd.ngrok-free.app']  # The dot prefix allows all subdomains
 
+# Add this to your settings.py file
+CSRF_TRUSTED_ORIGINS = ['https://feasible-closing-shepherd.ngrok-free.app']  # Use your actual ngrok domain
 
 # Application definition
 
